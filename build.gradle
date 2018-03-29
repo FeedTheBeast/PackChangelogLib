@@ -43,6 +43,8 @@ dependencies {
     compile 'commons-io:commons-io:2.6'//general utility classes
     compile 'com.google.guava:guava:24.0-jre'//general utility classes
     compile 'org.projectlombok:lombok:1.16.20'//getter/setter equals and hashcode automation
+    compile 'org.javers:javers-core:3.8.5'//diff support
+
 
     deployerJars 'org.apache.maven.wagon:wagon-ssh:2.2'
 }
