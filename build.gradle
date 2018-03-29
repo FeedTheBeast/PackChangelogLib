@@ -1,0 +1,142 @@
+/*buildscript {
+    repositories {
+		maven {
+            name = "sonatype"
+            url = "https://oss.sonatype.org/content/repositories/snapshots/"
+        }
+        jcenter()
+        mavenCentral()
+        mavenLocal()
+    }
+
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.0'
+    }
+}*/
+
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'idea'
+//apply plugin: 'com.github.johnrengelman.shadow'
+
+configurations {
+    deployerJars
+}
+
+repositories {
+	mavenCentral()
+    maven {
+        name = 'FTB'
+        url = 'https://ftb.cursecdn.com/FTB2/maven'
+    }
+    maven {
+        name = 'thiakil'
+        url = 'http://maven.thiakil.com/'
+    }
+}
+
+dependencies {
+    compile 'com.thiakil:CurseApi:1.0.13'//curse integration
+	compile 'com.google.code.gson:gson:2.8.2'//JSON support
+    compile 'commons-io:commons-io:2.6'//general utility classes
+    compile 'com.google.guava:guava:24.0-jre'//general utility classes
+    compile 'org.projectlombok:lombok:1.16.20'//getter/setter equals and hashcode automation
+
+    deployerJars 'org.apache.maven.wagon:wagon-ssh:2.2'
+}
+
+project.ext {
+    currentYear = '2018'
+}
+if (System.getenv().BUILD_NUMBER != null) {
+    ext.buildNum = System.getenv().BUILD_NUMBER
+} else {
+    ext.buildNum = "9999999"
+}
+
+group = 'net.ftb.packchangeloglib'
+version = "0.0.1-${project.buildNum}"
+description = "FTB Pack Changelog Library"
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+/*shadowJar  {
+  exclude 'META-INF/*.DSA'
+  exclude 'META-INF/*.RSA'
+  classifier = 'all'
+}*/
+//build.dependsOn(shadowJar)
+
+
+jar {
+    manifest {
+        attributes 'Launcher-Jenkins': project.buildNum
+    }
+}
+
+task sourceJar(type: Jar) {
+    from sourceSets.main.java
+    from sourceSets.main.resources
+    classifier = "sources"
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    from javadoc.destinationDir
+    classifier = "javadoc"
+}
+
+artifacts {
+   // archives shadowJar
+    archives jar
+    archives sourceJar
+    archives javadocJar
+}
+def gitSha() {
+    return 'git rev-parse HEAD'.execute().text.trim()
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            //artifact shadowJar
+            artifact jar
+            artifact sourceJar
+            artifact javadocJar
+        }
+    }
+
+    repositories {
+        maven {
+            if (project.hasProperty("s3_url")) {
+                url "s3://${s3_url}"
+
+            credentials(AwsCredentials) {
+                accessKey "${s3_key}"
+                secretKey "${s3_secret}"
+            }
+            }
+        }
+    }
+}
+if (project.hasProperty("local_maven")) {
+	apply plugin: 'maven'
+        uploadArchives {
+            repositories {
+                mavenDeployer {
+                    repository(url: "file://${local_maven}")
+            }
+        }
+    }
+}
+if (project.hasProperty("remote_maven") && project.hasProperty("sftp_pass")) {
+        apply plugin: 'maven'
+        uploadArchives {
+            repositories.mavenDeployer {
+                configuration = configurations.deployerJars
+                repository(url: "sftp://${remote_maven}") {
+                    authentication(userName: "${ftp_username}", password: "${sftp_pass}")
+                }
+            }
+        }
+    }
