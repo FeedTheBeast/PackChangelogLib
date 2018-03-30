@@ -18,7 +18,6 @@ import org.apache.commons.io.IOUtils;
 import org.datacontract.schemas._2004._07.curse_addonservice_requests.AddOnFileKey;
 import org.javers.core.Javers;
 import org.javers.core.JaversBuilder;
-import org.javers.core.diff.Diff;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -142,10 +141,10 @@ public class Testing {
             mods.add(mf.projectID);
         }
         AddOnFileKey[] afk = packmods.stream().map(mf -> mf.toAddOnFileKey()).toArray(AddOnFileKey[]::new);
-        List<AddOn> packaddons = svc.v2GetAddOns(mods.stream().mapToInt(i -> i).toArray());
-        for (AddOn a : packaddons) {
-            System.out.println(a.getName() + " " + a.getId());
-        }
+        //List<AddOn> packaddons = svc.v2GetAddOns(mods.stream().mapToInt(i -> i).toArray());
+        //for (AddOn a : packaddons) {
+        //    System.out.println(a.getName() + " " + a.getId());
+        //}
         Int2ObjectMap<List<AddOnFile>> packfiles = svc.getAddOnFiles(afk);
         for (Map.Entry<Integer, List<AddOnFile>> f : packfiles.entrySet()) {
             for (AddOnFile af : f.getValue()) {
@@ -169,20 +168,25 @@ public class Testing {
             packs.add(getVersion(svc, pyramid_project_id, pyramid_210));
             //packs.addAll(getLatestVersions(svc, pyramid_project_id));
             FileData files0 = getFilesInPackManifest(svc, packs.get(0));
-            Collections.sort(files0.getFiles(), (AddOnFile a1, AddOnFile a2) -> a1.getFileName().compareTo(a2.getFileName()));
+            Collections.sort(files0.getFiles(), (AddOnFile a1, AddOnFile a2) -> a1.getFileName().toLowerCase().compareTo(a2.getFileName().toLowerCase()));
 
             System.out.println("\n\n\n\n\n\n\n");
             FileData files1 = getFilesInPackManifest(svc, packs.get(1));
-            Collections.sort(files1.getFiles(), (AddOnFile a1, AddOnFile a2) -> a1.getFileName().compareTo(a2.getFileName()));
+            Collections.sort(files1.getFiles(), (AddOnFile a1, AddOnFile a2) -> a1.getFileName().toLowerCase().compareTo(a2.getFileName().toLowerCase()));
             Javers javers = JaversBuilder.javers().build();
             System.out.println("\n\n\n\n\n\n\n");
+            String forge0 = packs.get(0).getMinecraftModpackManifest().minecraft.modLoaders.get(0).id;
+            String forge1 = packs.get(1).getMinecraftModpackManifest().minecraft.modLoaders.get(0).id;
+            if (!forge0.equals(forge1)) {
+                System.out.println("MinecraftForge from " + forge0.replace("forge-","") + " to " + forge1.replace("forge-",""));
+            }
             for (AddOnFile fl : files0.getFiles()) {
                 Optional<AddOnFile> other = files1.getFiles().stream().parallel().filter(f -> f.getId() == fl.getId()).findFirst();
-                if (other.isPresent()) {
-                    Diff diff = javers.compare(fl, other.get());
-                    if (diff.getChanges().size() > 0) {
-                        System.out.println(diff.prettyPrint());
-                    }
+                if (other.isPresent()) { // we don't need to worry about dependency changes for now
+                    //Diff diff = javers.compare(fl, other.get());
+                    //if (diff.getChanges().size() > 0) {
+                    //    System.out.println("original: " + fl.getFileName() + " new: " + other.get().getFileName() + " \n" + diff.prettyPrint());
+                    // }
                 } else {
                     int id = -1;
                     int otherflid = -1;
