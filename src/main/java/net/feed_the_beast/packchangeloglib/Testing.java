@@ -132,15 +132,10 @@ public class Testing {
 
     public static FileData getFilesInPackManifest (AddOnService svc, PackHolder pack) throws RemoteException {
         List<AddOnFile> out = Lists.newArrayList();
-        List<ManifestResource> packmods = pack.getMinecraftModpackManifest().files;
-        List<Integer> mods = Lists.newArrayList();
+        List<AddOnFileKey> afklist = pack.getMinecraftModpackManifest().getFileKeys();
         List<AddOnFileKey> files = Lists.newArrayList();
         System.out.println("pack " + pack.getFile().getFileName());
-        for (ManifestResource mf : packmods) {
-            files.add(mf.toAddOnFileKey());
-            mods.add(mf.projectID);
-        }
-        AddOnFileKey[] afk = packmods.stream().map(mf -> mf.toAddOnFileKey()).toArray(AddOnFileKey[]::new);
+        AddOnFileKey[] afk = afklist.stream().map(mf -> mf).toArray(AddOnFileKey[]::new);
         //List<AddOn> packaddons = svc.v2GetAddOns(mods.stream().mapToInt(i -> i).toArray());
         //for (AddOn a : packaddons) {
         //    System.out.println(a.getName() + " " + a.getId());
